@@ -1,0 +1,13 @@
+**__pycache__**
+*.pkl
+*.so
+*.npz
+*.stat
+output/
+**build**
+data/
+**egg-info**
+*.pdf
+*.yaml
+*.png
+*.html

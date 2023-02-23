@@ -1,0 +1,96 @@
+DATA_CONFIG:
+    DATASET: WaymoDataset
+    OBJECT_TYPE: &object_type ['TYPE_VEHICLE', 'TYPE_PEDESTRIAN', 'TYPE_CYCLIST']
+    
+    DATA_ROOT: 'data/waymo'
+    SPLIT_DIR: {
+        'train': 'processed_scenarios_training', 
+        'test': 'processed_scenarios_validation'
+    }
+
+    INFO_FILE: {
+        'train': 'processed_scenarios_training_infos.pkl', 
+        'test': 'processed_scenarios_val_infos.pkl'
+    }
+
+    SAMPLE_INTERVAL: {
+        'train': 1, 
+        'test': 1
+    }
+
+    INFO_FILTER_DICT: 
+        filter_info_by_object_type: *object_type
+
+   # for map feature encoding
+    POINT_SAMPLED_INTERVAL: 1
+    NUM_POINTS_EACH_POLYLINE: 20
+    VECTOR_BREAK_DIST_THRESH: 1.0
+
+    NUM_OF_SRC_POLYLINES: 768
+    CENTER_OFFSET_OF_MAP: &center_offset [30.0, 0]
+
+
+MODEL:
+    CONTEXT_ENCODER:
+        NAME: MTREncoder
+
+        NUM_OF_ATTN_NEIGHBORS: 16
+        NUM_INPUT_ATTR_AGENT: 29
+        NUM_INPUT_ATTR_MAP: 9
+        
+        NUM_CHANNEL_IN_MLP_AGENT: 256
+        NUM_CHANNEL_IN_MLP_MAP: 64
+        NUM_LAYER_IN_MLP_AGENT: 3
+        NUM_LAYER_IN_MLP_MAP: 5
+        NUM_LAYER_IN_PRE_MLP_MAP: 3
+
+        D_MODEL: 256
+        NUM_ATTN_LAYERS: 6
+        NUM_ATTN_HEAD: 8 
+        DROPOUT_OF_ATTN: 0.1 
+
+        USE_LOCAL_ATTN: True
+
+    MOTION_DECODER:
+        NAME: MTRDecoder
+
+        OBJECT_TYPE: *object_type 
+        CENTER_OFFSET_OF_MAP: *center_offset
+
+        NUM_FUTURE_FRAMES: 80
+        NUM_MOTION_MODES: 6
+
+        INTENTION_POINTS_FILE: data/waymo/cluster_64_center_dict.pkl
+
+        D_MODEL: 512
+        NUM_DECODER_LAYERS: 6 
+        NUM_ATTN_HEAD: 8
+        MAP_D_MODEL: 256
+        DROPOUT_OF_ATTN: 0.1 
+
+        NUM_BASE_MAP_POLYLINES: 256
+        NUM_WAYPOINT_MAP_POLYLINES: 128
+
+        LOSS_WEIGHTS: {
+            'cls': 1.0, 
+            'reg': 1.0, 
+            'vel': 0.5
+        }
+
+        NMS_DIST_THRESH: 2.5
+
+
+OPTIMIZATION:
+    BATCH_SIZE_PER_GPU: 10
+    NUM_EPOCHS: 30
+
+    OPTIMIZER: AdamW
+    LR: 0.0001
+    WEIGHT_DECAY: 0.01
+
+    SCHEDULER: lambdaLR
+    DECAY_STEP_LIST: [22, 24, 26, 28]
+    LR_DECAY: 0.5
+    LR_CLIP: 0.000001
+
+    GRAD_NORM_CLIP: 1000.0

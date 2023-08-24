@@ -488,17 +488,27 @@ class WaymoDataset(DatasetTemplate):
         pred_trajs_world[:, :, :, 0:2] += center_objects_world[:, None, None, 0:2]
 
         pred_dict_list = []
-        for obj_idx in range(num_center_objects):
-            single_pred_dict = {
-                'scenario_id': input_dict['scenario_id'][obj_idx],
-                'pred_trajs': pred_trajs_world[obj_idx, :, :, 0:2].cpu().numpy(),
-                'pred_scores': pred_scores[obj_idx, :].cpu().numpy(),
-                'object_id': input_dict['center_objects_id'][obj_idx],
-                'object_type': input_dict['center_objects_type'][obj_idx],
-                'gt_trajs': input_dict['center_gt_trajs_src'][obj_idx].cpu().numpy(),
-                'track_index_to_predict': input_dict['track_index_to_predict'][obj_idx].cpu().numpy()
-            }
-            pred_dict_list.append(single_pred_dict)
+        batch_sample_count = batch_dict['batch_sample_count']
+        start_obj_idx = 0
+        for bs_idx in range(batch_dict['batch_size']):
+            cur_scene_pred_list = []
+            for obj_idx in range(start_obj_idx, start_obj_idx + batch_sample_count[bs_idx]):
+                single_pred_dict = {
+                    'scenario_id': input_dict['scenario_id'][obj_idx],
+                    'pred_trajs': pred_trajs_world[obj_idx, :, :, 0:2].cpu().numpy(),
+                    'pred_scores': pred_scores[obj_idx, :].cpu().numpy(),
+                    'object_id': input_dict['center_objects_id'][obj_idx],
+                    'object_type': input_dict['center_objects_type'][obj_idx],
+                    'gt_trajs': input_dict['center_gt_trajs_src'][obj_idx].cpu().numpy(),
+                    'track_index_to_predict': input_dict['track_index_to_predict'][obj_idx].cpu().numpy()
+                }
+                cur_scene_pred_list.append(single_pred_dict)
+
+            pred_dict_list.append(cur_scene_pred_list)
+            start_obj_idx += batch_sample_count[bs_idx]
+
+        assert start_obj_idx == num_center_objects
+        assert len(pred_dict_list) == batch_dict['batch_size']
 
         return pred_dict_list
 
